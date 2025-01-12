@@ -16,13 +16,14 @@ pub struct PakHeader {
 
 impl Pak {
     /// Creates a PAK from a file
-    pub fn new(filepath: &str) -> Result<Self, io::Error> {
+    pub fn new(filepath: &str) -> io::Result<Self> {
         let mut pak_file = File::open(filepath)?;
         let mut data: Vec<u8> = Vec::new();
         pak_file.read_to_end(&mut data)?;
         Ok(Pak { data })
     }
 
+    /// Returns a PAK Header
     pub fn read_header(&self) -> io::Result<PakHeader> {
         let mut cursor = io::Cursor::new(&self.data);
 
