@@ -3,12 +3,14 @@ use sdl2::{pixels::Color, render::WindowCanvas, sys::Window};
 
 use crate::models::*;
 use crate::palette::*;
+use crate::WIN_HEIGHT;
+use crate::WIN_WIDTH;
 
 pub fn render(canvas: &mut WindowCanvas, palette: &[(u8, u8, u8)], model: &Model) {
     // Create an off-screen texture at the fixed resolution (320x200)
     let texture_creator = canvas.texture_creator();
     let mut offscreen_texture = texture_creator
-        .create_texture_target(sdl2::pixels::PixelFormatEnum::RGB24, 320, 200)
+        .create_texture_target(sdl2::pixels::PixelFormatEnum::RGB24, WIN_WIDTH, WIN_HEIGHT)
         .expect("Failed to create off-screen texture");
 
     // Set the off-screen texture as the render target
@@ -80,7 +82,7 @@ pub fn render_model_skin(
     let skin_height = model.header.skinheight as usize;
 
     // Create a texture for the skin
-    let mut texture_creator = canvas.texture_creator();
+    let texture_creator = canvas.texture_creator();
     let mut texture = texture_creator
         .create_texture_streaming(
             sdl2::pixels::PixelFormatEnum::RGB24,

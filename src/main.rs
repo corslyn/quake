@@ -2,8 +2,7 @@ use std::time::Duration;
 
 use crate::config::*;
 use crate::models::{Model, ModelHeader};
-//use crate::palette;
-use crate::render::{render, render_model_skin};
+use crate::render::*;
 
 use pak::Pak;
 use sdl2::{event::Event, keyboard::Keycode};
@@ -13,11 +12,11 @@ mod models;
 mod pak;
 mod palette;
 mod render;
+mod wad;
 
 fn main() -> Result<(), String> {
     // Load the .PAK file
     let pak = Pak::new("id1/PAK0.PAK").expect("Failed to open PAK file");
-    let files = pak.read_directory().unwrap();
 
     // Load the Quake palette
     let palette_data = pak.find_file("gfx/palette.lmp").unwrap();
@@ -32,7 +31,6 @@ fn main() -> Result<(), String> {
 
     // Parse the skins
     let skins = models::parse_skins(&mut reader, &header).expect("Failed to parse skins");
-    let skins_clone = skins.clone();
 
     // Create the model object
     let model = Model {
@@ -41,6 +39,9 @@ fn main() -> Result<(), String> {
         skin_vertices: vec![],   // Placeholder: Load or parse as needed
         model_triangles: vec![], // Placeholder: Load or parse as needed
     };
+
+    let wad = pak.find_file("gfx.wad").unwrap();
+    let textures = wad::get_textures(wad);
 
     // Initialize SDL2
     let sdl_context = sdl2::init()?;
@@ -77,7 +78,6 @@ fn main() -> Result<(), String> {
         }
 
         render(&mut canvas, &converted_palette, &model);
-        //render(&mut canvas, &converted_palette, &model, &skins);
 
         // Control frame rate (72 FPS)
         std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 72));
