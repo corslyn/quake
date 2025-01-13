@@ -1,2 +1,2 @@
-pub const WIN_WIDTH: u32 = 640;
-pub const WIN_HEIGHT: u32 = 480;
+pub const WIN_WIDTH: u32 = 320;
+pub const WIN_HEIGHT: u32 = 200;
