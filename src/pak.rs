@@ -83,4 +83,17 @@ impl Pak {
 
         Ok(pakfiles)
     }
+
+    /// Returns file by path "maps/e1m1.bsp"
+    pub fn find_file(&self, path: &str) -> Option<Vec<u8>> {
+        let directory = self.read_directory().unwrap();
+        for file in directory {
+            if file.name == path {
+                let start = file.file_offset as usize;
+                let end = start + file.file_size as usize;
+                return Some(self.data[start..end].to_vec());
+            }
+        }
+        None
+    }
 }
