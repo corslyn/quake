@@ -1,9 +1,11 @@
 use std::time::Duration;
 
+use crate::config::*;
 use crate::render::*;
 use pak::Pak;
 use sdl2::{event::Event, keyboard::Keycode, pixels::Color};
 
+mod config;
 mod pak;
 mod palette;
 mod render;
@@ -14,16 +16,15 @@ fn main() -> Result<(), String> {
 
     let palette = pak.find_file("gfx/palette.lmp").unwrap();
 
-    let converted_palette = palette::convert_palette(palette);
+    let converted_palette = palette::convert_palette(&palette);
 
-    println!("{:?}", converted_palette);
-    /*
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
 
     let window = video_subsystem
-        .window("Birmingham Simulator", 640, 480)
+        .window("Birmingham Simulator", WIN_WIDTH, WIN_HEIGHT)
         .position_centered()
+        .resizable()
         .build()
         .expect("could not initialize video subsystem");
 
@@ -48,9 +49,9 @@ fn main() -> Result<(), String> {
             }
         }
 
-        render(&mut canvas);
+        render(&mut canvas, &converted_palette);
 
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 72)); // 72 fps
-    }*/
+    }
     Ok(())
 }

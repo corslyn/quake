@@ -2,7 +2,7 @@ use std::io;
 
 use byteorder::ReadBytesExt;
 
-pub fn convert_palette(palette: Vec<u8>) -> Vec<(u8, u8, u8)> {
+pub fn convert_palette(palette: &Vec<u8>) -> Vec<(u8, u8, u8)> {
     let mut cursor = io::Cursor::new(&palette);
     let mut converted_palette = Vec::new();
 
