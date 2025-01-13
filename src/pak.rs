@@ -14,6 +14,13 @@ pub struct PakHeader {
     pub dir_size: u32,   // Size of the directory
 }
 
+#[derive(Debug)]
+pub struct PakFile {
+    pub name: String, // 56 bytes null terminated ex : "maps/e1m1.bsp"
+    pub file_offset: u32,
+    pub file_size: u32,
+}
+
 impl Pak {
     /// Creates a PAK from a file
     pub fn new(filepath: &str) -> io::Result<Self> {
@@ -48,5 +55,32 @@ impl Pak {
             dir_offset,
             dir_size,
         })
+    }
+
+    pub fn read_directory(&self) -> io::Result<Vec<PakFile>> {
+        let header = self.read_header()?;
+
+        let file_number = header.dir_size / 64;
+
+        let mut pakfiles: Vec<PakFile> = Vec::new();
+
+        let mut cursor = io::Cursor::new(&self.data);
+        cursor.set_position(header.dir_offset.into());
+        for _ in 0..file_number {
+            let mut file_buf = [0u8; 56]; // 56 bytes
+            cursor.read_exact(&mut file_buf)?;
+            let name = String::from_utf8_lossy(&file_buf)
+                .trim_matches(char::from(0))
+                .to_string();
+            let file_offset = cursor.read_u32::<LittleEndian>()?;
+            let file_size = cursor.read_u32::<LittleEndian>()?;
+            pakfiles.push(PakFile {
+                name,
+                file_offset,
+                file_size,
+            });
+        }
+
+        Ok(pakfiles)
     }
 }
