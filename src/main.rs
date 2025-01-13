@@ -40,8 +40,10 @@ fn main() -> Result<(), String> {
         model_triangles: vec![], // Placeholder: Load or parse as needed
     };
 
-    let wad = pak.find_file("gfx.wad").unwrap();
-    let textures = wad::get_textures(wad);
+    let wad = wad::Wad::new(pak.find_file("gfx.wad").unwrap());
+
+    println!("{:?}", wad.read_directory());
+    //let textures = wad::get_textures(wad);
 
     // Initialize SDL2
     let sdl_context = sdl2::init()?;
