@@ -25,7 +25,7 @@ fn main() -> Result<(), String> {
     let converted_palette = palette::convert_palette(&palette_data);
 
     // Load the player.mdl file
-    let mdl_data = pak0.find_file("progs/ogre.mdl").expect("Model not found");
+    let mdl_data = pak0.find_file("progs/player.mdl").expect("Model not found");
     let mut reader = std::io::Cursor::new(&mdl_data);
 
     // Parse the model header
@@ -46,8 +46,9 @@ fn main() -> Result<(), String> {
     let bsp = bsp::Bsp::new(pak0.find_file("maps/start.bsp").unwrap());
     let bsp_header = bsp.read_header();
     let vertices = bsp.read_vertices(&bsp_header);
+    let edges = bsp.read_edges(&bsp_header);
 
-    println!("{:?}", vertices);
+    println!("{:?}", edges);
 
     // Initialize SDL2
     let sdl_context = sdl2::init()?;

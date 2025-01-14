@@ -2,6 +2,7 @@ use std::io::{self};
 
 use byteorder::{LittleEndian, ReadBytesExt};
 
+mod edges;
 mod vertices;
 
 pub struct Bsp {

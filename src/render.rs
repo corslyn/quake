@@ -27,9 +27,34 @@ pub fn render(canvas: &mut WindowCanvas, palette: &[(u8, u8, u8)], model: &Model
     canvas.set_draw_color(sdl2::pixels::Color::RGB(0, 0, 0));
     canvas.clear();
 
-    // Stretch the off-screen texture to fit the current window size
+    // Calculate the aspect ratio of the off-screen texture
+    let texture_aspect_ratio = WIN_WIDTH as f32 / WIN_HEIGHT as f32;
+
+    // Get the window dimensions
+    let (window_width, window_height) = canvas.window().size();
+    let window_aspect_ratio = window_width as f32 / window_height as f32;
+
+    // Calculate the destination rectangle while maintaining the aspect ratio
+    let (dest_width, dest_height) = if window_aspect_ratio > texture_aspect_ratio {
+        // Window is wider than the texture; scale based on height
+        let height = window_height;
+        let width = (height as f32 * texture_aspect_ratio) as u32;
+        (width, height)
+    } else {
+        // Window is taller than the texture; scale based on width
+        let width = window_width;
+        let height = (width as f32 / texture_aspect_ratio) as u32;
+        (width, height)
+    };
+
+    let dest_x = ((window_width - dest_width) / 2) as i32;
+    let dest_y = ((window_height - dest_height) / 2) as i32;
+
+    let dest_rect = sdl2::rect::Rect::new(dest_x, dest_y, dest_width, dest_height);
+
+    // Stretch the off-screen texture to fit the calculated rectangle
     canvas
-        .copy(&offscreen_texture, None, None)
+        .copy(&offscreen_texture, None, Some(dest_rect))
         .expect("Failed to copy off-screen texture to canvas");
 
     // Present the canvas to display the final output
