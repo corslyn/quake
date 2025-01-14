@@ -1,8 +1,6 @@
-use glam::Vec3;
-use sdl2::{pixels::Color, render::WindowCanvas, sys::Window};
+use sdl2::{pixels::Color, render::WindowCanvas};
 
 use crate::models::*;
-use crate::palette::*;
 use crate::WIN_HEIGHT;
 use crate::WIN_WIDTH;
 

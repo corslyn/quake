@@ -1,6 +1,8 @@
-use std::io;
+use std::io::{self};
 
 use byteorder::{LittleEndian, ReadBytesExt};
+
+mod vertices;
 
 pub struct Bsp {
     data: Vec<u8>,

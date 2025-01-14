@@ -17,14 +17,15 @@ mod wad;
 
 fn main() -> Result<(), String> {
     // Load the .PAK file
-    let pak = Pak::new("id1/PAK0.PAK").expect("Failed to open PAK file");
+    let pak0 = Pak::new("id1/PAK0.PAK").expect("Failed to open PAK0 file");
+    let pak1 = Pak::new("id1/PAK1.PAK").expect("Failed to open PAK1 file");
 
     // Load the Quake palette
-    let palette_data = pak.find_file("gfx/palette.lmp").unwrap();
+    let palette_data = pak0.find_file("gfx/palette.lmp").unwrap();
     let converted_palette = palette::convert_palette(&palette_data);
 
     // Load the player.mdl file
-    let mdl_data = pak.find_file("progs/ogre.mdl").expect("Model not found");
+    let mdl_data = pak0.find_file("progs/ogre.mdl").expect("Model not found");
     let mut reader = std::io::Cursor::new(&mdl_data);
 
     // Parse the model header
@@ -41,10 +42,12 @@ fn main() -> Result<(), String> {
         model_triangles: vec![], // Placeholder: Load or parse as needed
     };
 
-    let wad = wad::Wad::new(pak.find_file("gfx.wad").unwrap());
-    let bsp = bsp::Bsp::new(pak.find_file("maps/e1m1.bsp").unwrap());
+    let wad = wad::Wad::new(pak0.find_file("gfx.wad").unwrap());
+    let bsp = bsp::Bsp::new(pak0.find_file("maps/start.bsp").unwrap());
+    let bsp_header = bsp.read_header();
+    let vertices = bsp.read_vertices(&bsp_header);
 
-    println!("{:?}", bsp.read_header());
+    println!("{:?}", vertices);
 
     // Initialize SDL2
     let sdl_context = sdl2::init()?;
