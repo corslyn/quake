@@ -6,12 +6,14 @@ use crate::render::*;
 
 use bsp::{Edge, Vertex};
 use glam::Vec3;
+use music::handle_music;
 use pak::Pak;
 use sdl2::{event::Event, keyboard::Keycode};
 
 mod bsp;
 mod config;
 mod models;
+mod music;
 mod pak;
 mod palette;
 mod render;
@@ -46,11 +48,14 @@ fn main() -> Result<(), String> {
 
     let wad = wad::Wad::new(pak0.find_file("gfx.wad").unwrap());
     let bsp = bsp::Bsp::new(pak0.find_file("maps/start.bsp").unwrap());
+
     let bsp_header = bsp.read_header();
     let vertices = bsp.read_vertices(&bsp_header);
     let edges = bsp.read_edges(&bsp_header);
 
-    println!("{:?}", vertices);
+    // handle_music(); todo: find a way to play music while being able to move and render the map
+
+    //println!("{:?}", vertices);
     // Initialize SDL2
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
