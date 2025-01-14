@@ -68,7 +68,7 @@ fn main() -> Result<(), String> {
         .expect("Could not create canvas");
 
     let mut camera = Camera {
-        position: Vec3::new(538.0, 284.0, 28.0),
+        position: Vec3::new(538.0, 284.0, 28.0), // hardcoded for start.bsp, will be dependent on level later
         forward: Vec3::new(0.0, 0.0, 1.0),
         up: Vec3::new(0.0, 1.0, 0.0),
         fov: 90.0,
@@ -82,8 +82,8 @@ fn main() -> Result<(), String> {
 
     let mut event_pump = sdl_context.event_pump()?;
     let mut last_frame_time = Instant::now();
-    let move_speed = 310.0;
-    // Main game/rendering loop
+    let move_speed = 310.0; // ranger max run speed
+                            // Main game/rendering loop
     'running: loop {
         //println!("yaw : {}", camera.yaw);
         let now = Instant::now();
