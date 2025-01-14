@@ -28,7 +28,7 @@ impl Bsp {
             let z = f32::from_le_bytes(buffer[8..12].try_into().unwrap());
 
             vertices.push(Vertex {
-                coordinates: Vec3::new(x, y, z),
+                coordinates: Vec3::new(x, z, -y),
             });
         }
 

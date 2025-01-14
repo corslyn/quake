@@ -1,7 +1,9 @@
 use std::io::{self};
 
-use byteorder::{LittleEndian, ReadBytesExt};
+pub use self::edges::Edge;
+pub use self::vertices::Vertex;
 
+use byteorder::{LittleEndian, ReadBytesExt};
 mod edges;
 mod vertices;
 

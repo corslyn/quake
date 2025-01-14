@@ -1,10 +1,26 @@
+pub use camera::Camera;
+use glam::Vec3;
+use glam::Vec4Swizzles;
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
 use sdl2::{pixels::Color, render::WindowCanvas};
 
+use crate::bsp::Edge;
+use crate::bsp::Vertex;
 use crate::models::*;
 use crate::WIN_HEIGHT;
 use crate::WIN_WIDTH;
 
-pub fn render(canvas: &mut WindowCanvas, palette: &[(u8, u8, u8)], model: &Model) {
+mod camera;
+
+pub fn render(
+    canvas: &mut WindowCanvas,
+    palette: &[(u8, u8, u8)],
+    model: &Model,
+    camera: &Camera,
+    vertices: &Vec<Vertex>,
+    edges: &[Edge],
+) {
     // Create an off-screen texture at the fixed resolution (320x200)
     let texture_creator = canvas.texture_creator();
     let mut offscreen_texture = texture_creator
@@ -26,36 +42,41 @@ pub fn render(canvas: &mut WindowCanvas, palette: &[(u8, u8, u8)], model: &Model
     // Reset the render target to the main canvas
     canvas.set_draw_color(sdl2::pixels::Color::RGB(0, 0, 0));
     canvas.clear();
-
-    // Calculate the aspect ratio of the off-screen texture
-    let texture_aspect_ratio = WIN_WIDTH as f32 / WIN_HEIGHT as f32;
-
-    // Get the window dimensions
     let (window_width, window_height) = canvas.window().size();
-    let window_aspect_ratio = window_width as f32 / window_height as f32;
 
-    // Calculate the destination rectangle while maintaining the aspect ratio
-    let (dest_width, dest_height) = if window_aspect_ratio > texture_aspect_ratio {
-        // Window is wider than the texture; scale based on height
-        let height = window_height;
-        let width = (height as f32 * texture_aspect_ratio) as u32;
-        (width, height)
-    } else {
-        // Window is taller than the texture; scale based on width
-        let width = window_width;
-        let height = (width as f32 / texture_aspect_ratio) as u32;
-        (width, height)
-    };
+    /*
+        // Calculate the aspect ratio of the off-screen texture
+        let texture_aspect_ratio = WIN_WIDTH as f32 / WIN_HEIGHT as f32;
 
-    let dest_x = ((window_width - dest_width) / 2) as i32;
-    let dest_y = ((window_height - dest_height) / 2) as i32;
+        // Get the window dimensions
+        let (window_width, window_height) = canvas.window().size();
+        let window_aspect_ratio = window_width as f32 / window_height as f32;
 
-    let dest_rect = sdl2::rect::Rect::new(dest_x, dest_y, dest_width, dest_height);
+        // Calculate the destination rectangle while maintaining the aspect ratio
+        let (dest_width, dest_height) = if window_aspect_ratio > texture_aspect_ratio {
+            // Window is wider than the texture; scale based on height
+            let height = window_height;
+            let width = (height as f32 * texture_aspect_ratio) as u32;
+            (width, height)
+        } else {
+            // Window is taller than the texture; scale based on width
+            let width = window_width;
+            let height = (width as f32 / texture_aspect_ratio) as u32;
+            (width, height)
+        };
 
-    // Stretch the off-screen texture to fit the calculated rectangle
-    canvas
-        .copy(&offscreen_texture, None, Some(dest_rect))
-        .expect("Failed to copy off-screen texture to canvas");
+        let dest_x = ((window_width - dest_width) / 2) as i32;
+        let dest_y = ((window_height - dest_height) / 2) as i32;
+
+        let dest_rect = sdl2::rect::Rect::new(dest_x, dest_y, dest_width, dest_height);
+
+        // Stretch the off-screen texture to fit the calculated rectangle
+        canvas
+            .copy(&offscreen_texture, None, Some(dest_rect))
+            .expect("Failed to copy off-screen texture to canvas");
+    */
+
+    render_edges(canvas, camera, vertices, edges, window_width, window_height);
 
     // Present the canvas to display the final output
     canvas.present();
@@ -135,4 +156,100 @@ pub fn render_model_skin(
     canvas
         .copy(&texture, None, Some(target_rect))
         .expect("Failed to copy texture to canvas");
+}
+
+fn transform_vertex(
+    vertex: Vec3,
+    camera: &Camera,
+    window_width: u32,
+    window_height: u32,
+) -> Option<(i32, i32)> {
+    let view_proj = camera.projection_matrix() * camera.view_matrix();
+    let clip_space = view_proj * vertex.extend(1.0);
+
+    if clip_space.w == 0.0 {
+        return None; // Avoid division by zero
+    }
+
+    let ndc = clip_space.xyz() / clip_space.w; // Normalize device coordinates
+
+    if ndc.x < -1.0 || ndc.x > 1.0 || ndc.y < -1.0 || ndc.y > 1.0 || ndc.z < -1.0 || ndc.z > 1.0 {
+        return None; // Outside clip space
+    }
+
+    // Map to screen space
+    let x = ((ndc.x + 1.0) * 0.5 * window_width as f32) as i32;
+    let y = ((1.0 - ndc.y) * 0.5 * window_height as f32) as i32;
+
+    Some((x, y))
+}
+
+pub fn render_edges(
+    canvas: &mut WindowCanvas,
+    camera: &Camera,
+    vertices: &[Vertex],
+    edges: &[Edge],
+    window_width: u32,
+    window_height: u32,
+) {
+    canvas.set_draw_color(Color::RGB(0, 0, 0));
+    canvas.clear();
+
+    for edge in edges {
+        if let (Some(start), Some(end)) = (
+            transform_vertex(
+                vertices[edge.start_vertex as usize].coordinates,
+                camera,
+                window_width,
+                window_height,
+            ),
+            transform_vertex(
+                vertices[edge.end_vertex as usize].coordinates,
+                camera,
+                window_width,
+                window_height,
+            ),
+        ) {
+            canvas.set_draw_color(Color::RGB(255, 255, 255)); // Set edge color
+            canvas.draw_line(start, end).expect("Failed to draw line");
+        }
+    }
+
+    canvas.present();
+}
+
+pub fn handle_input(event: &Event, camera: &mut Camera, delta_time: f32, move_speed: f32) {
+    match event {
+        Event::KeyDown {
+            keycode: Some(key), ..
+        } => match key {
+            &Keycode::W => camera.position += camera.forward * move_speed * delta_time,
+            &Keycode::S => camera.position -= camera.forward * move_speed * delta_time,
+            &Keycode::A => camera.position -= camera.right * move_speed * delta_time,
+            &Keycode::D => camera.position += camera.right * move_speed * delta_time,
+            &Keycode::Space => camera.position += camera.up * move_speed * delta_time,
+            &Keycode::RCtrl => camera.position -= camera.up * move_speed * delta_time,
+            &Keycode::UP => {
+                camera.pitch += 5.0;
+                camera.pitch = camera.pitch.clamp(-89.0, 89.0);
+                camera.update_direction();
+            }
+            &Keycode::DOWN => {
+                camera.pitch -= 5.0;
+                camera.pitch = camera.pitch.clamp(-89.0, 89.0);
+                camera.update_direction();
+            }
+            &Keycode::RIGHT => {
+                camera.yaw += 5.0;
+                camera.update_direction();
+            }
+            &Keycode::LEFT => {
+                camera.yaw -= 5.0;
+                camera.update_direction();
+            }
+            _ => {}
+        },
+
+        _ => {}
+    }
 }

@@ -1,9 +1,11 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crate::config::*;
 use crate::models::{Model, ModelHeader};
 use crate::render::*;
 
+use bsp::{Edge, Vertex};
+use glam::Vec3;
 use pak::Pak;
 use sdl2::{event::Event, keyboard::Keycode};
 
@@ -48,8 +50,7 @@ fn main() -> Result<(), String> {
     let vertices = bsp.read_vertices(&bsp_header);
     let edges = bsp.read_edges(&bsp_header);
 
-    println!("{:?}", edges);
-
+    println!("{:?}", vertices);
     // Initialize SDL2
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
@@ -66,10 +67,28 @@ fn main() -> Result<(), String> {
         .build()
         .expect("Could not create canvas");
 
-    let mut event_pump = sdl_context.event_pump()?;
+    let mut camera = Camera {
+        position: Vec3::new(538.0, 284.0, 28.0),
+        forward: Vec3::new(0.0, 0.0, 1.0),
+        up: Vec3::new(0.0, 1.0, 0.0),
+        fov: 90.0,
+        aspect_ratio: 320.0 / 200.0,
+        near: 0.01,
+        far: 1500.0,
+        right: Vec3::new(1.0, 0.0, 0.0),
+        yaw: 0.0,
+        pitch: 0.0,
+    };
 
+    let mut event_pump = sdl_context.event_pump()?;
+    let mut last_frame_time = Instant::now();
+    let move_speed = 310.0;
     // Main game/rendering loop
     'running: loop {
+        //println!("yaw : {}", camera.yaw);
+        let now = Instant::now();
+        let delta_time = (now - last_frame_time).as_secs_f32();
+        last_frame_time = now;
         // Handle events
         for event in event_pump.poll_iter() {
             match event {
@@ -80,11 +99,20 @@ fn main() -> Result<(), String> {
                 } => {
                     break 'running;
                 }
-                _ => {}
+                _ => {
+                    handle_input(&event, &mut camera, delta_time, move_speed);
+                }
             }
         }
 
-        render(&mut canvas, &converted_palette, &model);
+        render(
+            &mut canvas,
+            &converted_palette,
+            &model,
+            &camera,
+            &vertices,
+            &edges,
+        );
 
         // Control frame rate (72 FPS)
         std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 72));
