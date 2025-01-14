@@ -15,12 +15,12 @@ pub struct WadHeader {
 #[derive(Debug)]
 pub struct WadAsset {
     pub offset: u32,
-    pub dsize: u32,
-    pub size: u32,
-    pub entry_type: char,
-    pub compression: char,
-    pub dummy: u16,
-    pub name: String, // Max 16 chars, null byte terminated
+    pub dsize: u32,        // Size of the entry in WAD file
+    pub size: u32,         // Size of the entry in memory
+    pub entry_type: char, // "@" = Raw bytes, "B" = Pictures (status bar), "D" = MIP Textures (3D brush models)
+    pub compression: char, // 0 = no compression
+    pub dummy: u16,       // unused
+    pub name: String,     // Max 16 chars, null byte terminated
 }
 
 impl Wad {
@@ -80,5 +80,18 @@ impl Wad {
             });
         }
         assets
+    }
+
+    /// Returns file by path "maps/e1m1.bsp"
+    pub fn find_file(&self, path: &str) -> Option<Vec<u8>> {
+        let directory = self.read_directory();
+        for file in directory {
+            if file.name == path {
+                let start = file.offset as usize;
+                let end = start + file.dsize as usize;
+                return Some(self.data[start..end].to_vec());
+            }
+        }
+        None
     }
 }

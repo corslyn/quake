@@ -7,6 +7,7 @@ use crate::render::*;
 use pak::Pak;
 use sdl2::{event::Event, keyboard::Keycode};
 
+mod bsp;
 mod config;
 mod models;
 mod pak;
@@ -23,7 +24,7 @@ fn main() -> Result<(), String> {
     let converted_palette = palette::convert_palette(&palette_data);
 
     // Load the player.mdl file
-    let mdl_data = pak.find_file("progs/player.mdl").expect("Model not found");
+    let mdl_data = pak.find_file("progs/ogre.mdl").expect("Model not found");
     let mut reader = std::io::Cursor::new(&mdl_data);
 
     // Parse the model header
@@ -41,9 +42,9 @@ fn main() -> Result<(), String> {
     };
 
     let wad = wad::Wad::new(pak.find_file("gfx.wad").unwrap());
+    let bsp = bsp::Bsp::new(pak.find_file("maps/e1m1.bsp").unwrap());
 
-    println!("{:?}", wad.read_directory());
-    //let textures = wad::get_textures(wad);
+    println!("{:?}", bsp.read_header());
 
     // Initialize SDL2
     let sdl_context = sdl2::init()?;
