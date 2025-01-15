@@ -53,7 +53,8 @@ fn main() -> Result<(), String> {
     let vertices = bsp.read_vertices(&bsp_header);
     let edges = bsp.read_edges(&bsp_header);
     //let entities = bsp.read_entities(&bsp_header);
-    //println!("{:?}", entities);
+    let faces = bsp.read_faces(&bsp_header);
+    println!("{:?}", faces);
 
     // handle_music(); todo: find a way to play music while being able to move and render the map
 
