@@ -52,6 +52,8 @@ fn main() -> Result<(), String> {
     let bsp_header = bsp.read_header();
     let vertices = bsp.read_vertices(&bsp_header);
     let edges = bsp.read_edges(&bsp_header);
+    //let entities = bsp.read_entities(&bsp_header);
+    //println!("{:?}", entities);
 
     // handle_music(); todo: find a way to play music while being able to move and render the map
 
@@ -76,7 +78,7 @@ fn main() -> Result<(), String> {
         position: Vec3::new(538.0, 284.0, 28.0), // hardcoded for start.bsp, will be dependent on level later
         forward: Vec3::new(0.0, 0.0, 1.0),
         up: Vec3::new(0.0, 1.0, 0.0),
-        fov: 90.0,
+        fov: 125.0,
         aspect_ratio: 320.0 / 200.0,
         near: 0.01,
         far: 1500.0,
@@ -88,7 +90,8 @@ fn main() -> Result<(), String> {
     let mut event_pump = sdl_context.event_pump()?;
     let mut last_frame_time = Instant::now();
     let move_speed = 310.0; // ranger max run speed
-                            // Main game/rendering loop
+
+    // Main game/rendering loop
     'running: loop {
         //println!("yaw : {}", camera.yaw);
         let now = Instant::now();

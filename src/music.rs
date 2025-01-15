@@ -14,5 +14,4 @@ pub fn handle_music() {
     stream_handle
         .play_raw(source.convert_samples())
         .expect("Failed to play audio");
-    std::thread::sleep(std::time::Duration::from_secs(5));
 }

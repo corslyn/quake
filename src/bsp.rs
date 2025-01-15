@@ -5,6 +5,7 @@ pub use self::vertices::Vertex;
 
 use byteorder::{LittleEndian, ReadBytesExt};
 mod edges;
+//mod entities;
 mod vertices;
 
 pub struct Bsp {
