@@ -2,10 +2,12 @@ pub use camera::Camera;
 use glam::Vec3;
 use glam::Vec4Swizzles;
 use sdl2::event::Event;
+use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::keyboard::Keycode;
 use sdl2::{pixels::Color, render::WindowCanvas};
 
 use crate::bsp::Edge;
+use crate::bsp::Face;
 use crate::bsp::Vertex;
 use crate::models::*;
 use crate::WIN_HEIGHT;
@@ -20,6 +22,7 @@ pub fn render(
     camera: &Camera,
     vertices: &Vec<Vertex>,
     edges: &[Edge],
+    faces: &[Face],
 ) {
     // Create an off-screen texture at the fixed resolution (320x200)
     let texture_creator = canvas.texture_creator();
@@ -45,7 +48,15 @@ pub fn render(
     let (window_width, window_height) = canvas.window().size();
 
     render_edges(canvas, camera, vertices, edges, window_width, window_height);
-
+    /*render_faces(
+        canvas,
+        faces,
+        edges,
+        vertices,
+        camera,
+        window_width,
+        window_height,
+    );*/
     // Present the canvas to display the final output
     canvas.present();
 }
@@ -191,37 +202,30 @@ pub fn render_edges(
 }
 
 pub fn handle_input(event: &Event, camera: &mut Camera, delta_time: f32, move_speed: f32) {
+    let mouse_sensitivity = 1.0;
     match event {
         Event::KeyDown {
             keycode: Some(key), ..
         } => match key {
-            &Keycode::W => camera.position += camera.forward * move_speed * delta_time,
-            &Keycode::S => camera.position -= camera.forward * move_speed * delta_time,
-            &Keycode::A => camera.position -= camera.right * move_speed * delta_time,
-            &Keycode::D => camera.position += camera.right * move_speed * delta_time,
-            &Keycode::Space => camera.position += camera.up * move_speed * delta_time,
-            &Keycode::RCtrl => camera.position -= camera.up * move_speed * delta_time,
-            &Keycode::UP => {
-                camera.pitch += 5.0;
-                camera.pitch = camera.pitch.clamp(-89.0, 89.0);
-                camera.update_direction();
-            }
-            &Keycode::DOWN => {
-                camera.pitch -= 5.0;
-                camera.pitch = camera.pitch.clamp(-89.0, 89.0);
-                camera.update_direction();
-            }
-            &Keycode::RIGHT => {
-                camera.yaw += 5.0;
-                camera.update_direction();
-            }
-            &Keycode::LEFT => {
-                camera.yaw -= 5.0;
-                camera.update_direction();
-            }
+            &Keycode::S => camera.position -= camera.forward * move_speed * delta_time, // Move forward (-Y)
+            &Keycode::Z => camera.position += camera.forward * move_speed * delta_time, // Move backward (+Y)
+            &Keycode::Q => camera.position += camera.right * move_speed * delta_time, // Move right (+X)
+            &Keycode::D => camera.position -= camera.right * move_speed * delta_time, // Move left (-X)
+            &Keycode::A => camera.position += camera.up * move_speed * delta_time, // Move up (+Z)
+            &Keycode::E => camera.position -= camera.up * move_speed * delta_time, // Move down (-Z)
             _ => {}
         },
+        Event::MouseMotion { xrel, yrel, .. } => {
+            // Update yaw and pitch based on mouse movement
+            camera.yaw -= *xrel as f32 * mouse_sensitivity; // Horizontal mouse movement
+            camera.pitch -= *yrel as f32 * mouse_sensitivity; // Vertical mouse movement
 
+            // Clamp pitch to prevent flipping
+            camera.pitch = camera.pitch.clamp(-89.0, 89.0);
+
+            // Update the camera's direction vectors
+            camera.update_direction();
+        }
         _ => {}
     }
 }
@@ -274,4 +278,73 @@ fn ndc_to_screen(ndc: Vec3, screen_width: u32, screen_height: u32) -> sdl2::rect
     let x = ((ndc.x + 1.0) * 0.5 * screen_width as f32) as i32;
     let y = ((1.0 - ndc.y) * 0.5 * screen_height as f32) as i32; // Flip Y axis
     sdl2::rect::Point::new(x, y)
+}
+
+pub fn get_color(seed: u32) -> Color {
+    Color {
+        r: (seed & 0xFF) as u8,       // Extract the red component
+        g: ((seed & 8) & 0xFF) as u8, // Extract the green component
+        b: (seed & 0xFF) as u8,       // Extract the blue component
+        a: 255,                       // Fully opaque
+    }
+}
+
+pub fn render_faces(
+    canvas: &mut sdl2::render::WindowCanvas,
+    faces: &[Face],
+    edges: &[Edge],
+    vertices: &[Vertex],
+    camera: &Camera,
+    screen_width: u32,
+    screen_height: u32,
+) {
+    let view_proj = camera.projection_matrix() * camera.view_matrix();
+
+    for face in faces {
+        let mut face_points = Vec::new();
+        let mut is_clipped = false;
+
+        for i in 0..face.ledge_num as usize {
+            let edge_index = face.ledge_id as usize + i;
+            if edge_index >= edges.len() {
+                is_clipped = true;
+                break;
+            }
+
+            let edge = &edges[edge_index];
+            let vertex = &vertices[edge.start_vertex as usize];
+
+            let clip_space = view_proj * vertex.coordinates.extend(1.0);
+            if clip_space.w <= 0.0 {
+                is_clipped = true; // Flag if vertex is behind the camera
+                continue;
+            }
+
+            let ndc = clip_space.xyz() / clip_space.w;
+
+            if ndc.x < -1.0
+                || ndc.x > 1.0
+                || ndc.y < -1.0
+                || ndc.y > 1.0
+                || ndc.z < -1.0
+                || ndc.z > 1.0
+            {
+                is_clipped = true; // Flag if vertex is outside clip space
+                continue;
+            }
+
+            let screen_point = ndc_to_screen(ndc, screen_width, screen_height);
+            face_points.push((screen_point.x as i16, screen_point.y as i16));
+        }
+
+        if !is_clipped && face_points.len() >= 3 {
+            let color = get_color(face.ledge_id as u32);
+
+            let (x_coords, y_coords): (Vec<i16>, Vec<i16>) = face_points.iter().cloned().unzip();
+
+            canvas
+                .filled_polygon(&x_coords, &y_coords, color)
+                .expect("Failed to render face");
+        }
+    }
 }

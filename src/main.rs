@@ -54,7 +54,8 @@ fn main() -> Result<(), String> {
     let edges = bsp.read_edges(&bsp_header);
     //let entities = bsp.read_entities(&bsp_header);
     let faces = bsp.read_faces(&bsp_header);
-    println!("{:?}", faces);
+    let planes = bsp.read_planes(&bsp_header);
+    println!("{:?}", planes);
 
     // handle_music(); todo: find a way to play music while being able to move and render the map
 
@@ -77,15 +78,15 @@ fn main() -> Result<(), String> {
 
     let mut camera = Camera {
         position: Vec3::new(538.0, 284.0, 28.0), // hardcoded for start.bsp, will be dependent on level later
-        forward: Vec3::new(0.0, 0.0, 1.0),
-        up: Vec3::new(0.0, 1.0, 0.0),
-        fov: 125.0,
-        aspect_ratio: 320.0 / 200.0,
-        near: 0.01,
-        far: 1500.0,
-        right: Vec3::new(1.0, 0.0, 0.0),
+        forward: Vec3::new(0.0, 1.0, 0.0),       // Looking toward Y
+        up: Vec3::new(0.0, 0.0, 1.0),            // Z is up
+        right: Vec3::new(1.0, 0.0, 0.0),         // X is right
         yaw: 0.0,
         pitch: 0.0,
+        fov: 125.0,
+        aspect_ratio: 320.0 / 200.0,
+        near: 0.1,
+        far: 1200.0,
     };
 
     let mut event_pump = sdl_context.event_pump()?;
@@ -121,6 +122,7 @@ fn main() -> Result<(), String> {
             &camera,
             &vertices,
             &edges,
+            &faces,
         );
 
         // Control frame rate (72 FPS)

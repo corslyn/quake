@@ -1,12 +1,14 @@
 use std::io::{self};
 
 pub use self::edges::Edge;
+pub use self::faces::Face;
 pub use self::vertices::Vertex;
 
 use byteorder::{LittleEndian, ReadBytesExt};
 mod edges;
 //mod entities;
 mod faces;
+mod planes;
 mod vertices;
 
 pub struct Bsp {
