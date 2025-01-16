@@ -4,6 +4,9 @@ use glam::Vec4Swizzles;
 use sdl2::event::Event;
 use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::keyboard::Keycode;
+use sdl2::mouse::MouseButton;
+use sdl2::mouse::MouseButtonIterator;
+use sdl2::Sdl;
 use sdl2::{pixels::Color, render::WindowCanvas};
 
 use crate::bsp::Edge;
@@ -201,7 +204,13 @@ pub fn render_edges(
     canvas.present();
 }
 
-pub fn handle_input(event: &Event, camera: &mut Camera, delta_time: f32, move_speed: f32) {
+pub fn handle_input(
+    event: &Event,
+    camera: &mut Camera,
+    delta_time: f32,
+    move_speed: f32,
+    sdl_context: &mut Sdl,
+) {
     let mouse_sensitivity = 0.4;
     match event {
         Event::KeyDown {
@@ -209,10 +218,11 @@ pub fn handle_input(event: &Event, camera: &mut Camera, delta_time: f32, move_sp
         } => match key {
             &Keycode::S => camera.position -= camera.forward * move_speed * delta_time, // Move forward (-Y)
             &Keycode::Z => camera.position += camera.forward * move_speed * delta_time, // Move backward (+Y)
-            &Keycode::Q => camera.position += camera.right * move_speed * delta_time, // Move right (+X)
-            &Keycode::D => camera.position -= camera.right * move_speed * delta_time, // Move left (-X)
+            &Keycode::D => camera.position += camera.right * move_speed * delta_time, // Move right (+X)
+            &Keycode::Q => camera.position -= camera.right * move_speed * delta_time, // Move left (-X)
             &Keycode::A => camera.position += camera.up * move_speed * delta_time, // Move up (+Z)
             &Keycode::E => camera.position -= camera.up * move_speed * delta_time, // Move down (-Z)
+
             _ => {}
         },
         Event::MouseMotion { xrel, yrel, .. } => {
@@ -226,6 +236,11 @@ pub fn handle_input(event: &Event, camera: &mut Camera, delta_time: f32, move_sp
             // Update the camera's direction vectors
             camera.update_direction();
         }
+        Event::MouseButtonDown { mouse_btn, .. } => match mouse_btn {
+            &MouseButton::Left => sdl_context.mouse().set_relative_mouse_mode(true), // locks the mouse inside the window
+            &MouseButton::Right => sdl_context.mouse().set_relative_mouse_mode(false),
+            _ => {}
+        },
         _ => {}
     }
 }
