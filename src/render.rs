@@ -202,7 +202,7 @@ pub fn render_edges(
 }
 
 pub fn handle_input(event: &Event, camera: &mut Camera, delta_time: f32, move_speed: f32) {
-    let mouse_sensitivity = 1.0;
+    let mouse_sensitivity = 0.4;
     match event {
         Event::KeyDown {
             keycode: Some(key), ..
@@ -217,7 +217,7 @@ pub fn handle_input(event: &Event, camera: &mut Camera, delta_time: f32, move_sp
         },
         Event::MouseMotion { xrel, yrel, .. } => {
             // Update yaw and pitch based on mouse movement
-            camera.yaw -= *xrel as f32 * mouse_sensitivity; // Horizontal mouse movement
+            camera.yaw += *xrel as f32 * mouse_sensitivity; // Horizontal mouse movement
             camera.pitch -= *yrel as f32 * mouse_sensitivity; // Vertical mouse movement
 
             // Clamp pitch to prevent flipping

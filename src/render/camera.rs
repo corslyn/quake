@@ -22,7 +22,7 @@ impl Camera {
     pub fn projection_matrix(&self) -> Mat4 {
         Mat4::perspective_lh(
             self.fov.to_radians(),
-            self.aspect_ratio,
+            -self.aspect_ratio, // mirrors the map, probably not the best way but works™ for now
             self.near,
             self.far,
         )
