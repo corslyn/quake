@@ -47,7 +47,7 @@ fn main() -> Result<(), String> {
     };
 
     let wad = wad::Wad::new(pak0.find_file("gfx.wad").unwrap());
-    let bsp = bsp::Bsp::new(pak0.find_file("maps/e1m1.bsp").unwrap());
+    let bsp = bsp::Bsp::new(pak0.find_file("maps/start.bsp").unwrap());
 
     let bsp_header = bsp.read_header();
     let vertices = bsp.read_vertices(&bsp_header);
@@ -129,6 +129,7 @@ fn main() -> Result<(), String> {
             &vertices,
             &edges,
             &faces,
+            &planes,
         );
 
         // Control frame rate (72 FPS)

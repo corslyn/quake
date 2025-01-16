@@ -2,6 +2,7 @@ use std::io::{self};
 
 pub use self::edges::Edge;
 pub use self::faces::Face;
+pub use self::planes::Plane;
 pub use self::vertices::Vertex;
 
 use byteorder::{LittleEndian, ReadBytesExt};

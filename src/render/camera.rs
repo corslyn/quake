@@ -1,5 +1,7 @@
 use glam::{Mat4, Vec3};
 
+use crate::bsp::Vertex;
+
 pub struct Camera {
     pub position: Vec3,
     pub forward: Vec3,
