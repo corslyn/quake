@@ -131,6 +131,7 @@ fn main() -> Result<(), String> {
             &vertices,
             &edges,
             &faces,
+            &planes,
         );
 
         // Control frame rate (72 FPS)

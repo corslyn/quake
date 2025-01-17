@@ -11,12 +11,14 @@ use sdl2::{pixels::Color, render::WindowCanvas};
 
 use crate::bsp::Edge;
 use crate::bsp::Face;
+use crate::bsp::Plane;
 use crate::bsp::Vertex;
 use crate::models::*;
 use crate::WIN_HEIGHT;
 use crate::WIN_WIDTH;
 
 mod camera;
+mod edges;
 
 pub fn render(
     canvas: &mut WindowCanvas,
@@ -26,6 +28,7 @@ pub fn render(
     vertices: &Vec<Vertex>,
     edges: &[Edge],
     faces: &[Face],
+    planes: &[Plane],
 ) {
     // Create an off-screen texture at the fixed resolution (320x200)
     let texture_creator = canvas.texture_creator();
@@ -50,10 +53,11 @@ pub fn render(
     canvas.clear();
     let (window_width, window_height) = canvas.window().size();
 
-    render_edges(canvas, camera, vertices, edges, window_width, window_height);
+    edges::render_edges(canvas, camera, vertices, edges, window_width, window_height);
     /*render_faces(
         canvas,
         faces,
+        planes,
         edges,
         vertices,
         camera,
@@ -166,44 +170,6 @@ fn transform_vertex(
     Some((x, y))
 }
 
-pub fn render_edges(
-    canvas: &mut sdl2::render::WindowCanvas,
-    camera: &Camera,
-    vertices: &[Vertex],
-    edges: &[Edge],
-    screen_width: u32,
-    screen_height: u32,
-) {
-    let view_proj = camera.projection_matrix() * camera.view_matrix();
-
-    for edge in edges {
-        let v1_world = vertices[edge.start_vertex as usize].coordinates;
-        let v2_world = vertices[edge.end_vertex as usize].coordinates;
-
-        let v1_clip = view_proj * v1_world.extend(1.0);
-        let v2_clip = view_proj * v2_world.extend(1.0);
-
-        if v1_clip.w <= 0.0 || v2_clip.w <= 0.0 {
-            continue; // Skip edges behind the camera
-        }
-
-        let v1_ndc = v1_clip.xyz() / v1_clip.w;
-        let v2_ndc = v2_clip.xyz() / v2_clip.w;
-
-        if let Some((v1_clipped, v2_clipped)) = clip_edge_to_screen(v1_ndc, v2_ndc) {
-            let v1_screen = ndc_to_screen(v1_clipped, screen_width, screen_height);
-            let v2_screen = ndc_to_screen(v2_clipped, screen_width, screen_height);
-
-            canvas.set_draw_color(sdl2::pixels::Color::RGB(255, 255, 255));
-            canvas
-                .draw_line(v1_screen, v2_screen)
-                .expect("Failed to draw edge");
-        }
-    }
-
-    canvas.present();
-}
-
 pub fn handle_input(
     event: &Event,
     camera: &mut Camera,
@@ -245,50 +211,6 @@ pub fn handle_input(
     }
 }
 
-fn clip_edge_to_screen(v1_ndc: Vec3, v2_ndc: Vec3) -> Option<(Vec3, Vec3)> {
-    let mut v1 = v1_ndc;
-    let mut v2 = v2_ndc;
-
-    // Define NDC bounds
-    let min_ndc = Vec3::new(-1.0, -1.0, -1.0);
-    let max_ndc = Vec3::new(1.0, 1.0, 1.0);
-
-    // Clip the edge to the NDC bounds
-    let mut t_min: f32 = 0.0;
-    let mut t_max: f32 = 1.0;
-
-    for i in 0..3 {
-        let delta = v2[i] - v1[i];
-
-        if delta == 0.0 {
-            // Parallel to this axis
-            if v1[i] < min_ndc[i] || v1[i] > max_ndc[i] {
-                return None; // Outside bounds
-            }
-        } else {
-            // Calculate intersections with the planes
-            let t1 = (min_ndc[i] - v1[i]) / delta;
-            let t2 = (max_ndc[i] - v1[i]) / delta;
-
-            // Order t1 and t2
-            let (t_near, t_far) = if t1 < t2 { (t1, t2) } else { (t2, t1) };
-
-            t_min = t_min.max(t_near);
-            t_max = t_max.min(t_far);
-
-            if t_min > t_max {
-                return None; // Fully outside
-            }
-        }
-    }
-
-    // Compute the clipped coordinates
-    let v1_clipped = v1 + t_min * (v2 - v1);
-    let v2_clipped = v1 + t_max * (v2 - v1);
-
-    Some((v1_clipped, v2_clipped))
-}
-
 fn ndc_to_screen(ndc: Vec3, screen_width: u32, screen_height: u32) -> sdl2::rect::Point {
     let x = ((ndc.x + 1.0) * 0.5 * screen_width as f32) as i32;
     let y = ((1.0 - ndc.y) * 0.5 * screen_height as f32) as i32; // Flip Y axis
@@ -301,65 +223,5 @@ pub fn get_color(seed: u32) -> Color {
         g: ((seed & 8) & 0xFF) as u8, // Extract the green component
         b: (seed & 0xFF) as u8,       // Extract the blue component
         a: 255,                       // Fully opaque
-    }
-}
-
-pub fn render_faces(
-    canvas: &mut sdl2::render::WindowCanvas,
-    faces: &[Face],
-    edges: &[Edge],
-    vertices: &[Vertex],
-    camera: &Camera,
-    screen_width: u32,
-    screen_height: u32,
-) {
-    let view_proj = camera.projection_matrix() * camera.view_matrix();
-
-    for face in faces {
-        let mut face_points = Vec::new();
-        let mut is_clipped = false;
-
-        for i in 0..face.ledge_num as usize {
-            let edge_index = face.ledge_id as usize + i;
-            if edge_index >= edges.len() {
-                is_clipped = true;
-                break;
-            }
-
-            let edge = &edges[edge_index];
-            let vertex = &vertices[edge.start_vertex as usize];
-
-            let clip_space = view_proj * vertex.coordinates.extend(1.0);
-            if clip_space.w <= 0.0 {
-                is_clipped = true; // Flag if vertex is behind the camera
-                continue;
-            }
-
-            let ndc = clip_space.xyz() / clip_space.w;
-
-            if ndc.x < -1.0
-                || ndc.x > 1.0
-                || ndc.y < -1.0
-                || ndc.y > 1.0
-                || ndc.z < -1.0
-                || ndc.z > 1.0
-            {
-                is_clipped = true; // Flag if vertex is outside clip space
-                continue;
-            }
-
-            let screen_point = ndc_to_screen(ndc, screen_width, screen_height);
-            face_points.push((screen_point.x as i16, screen_point.y as i16));
-        }
-
-        if !is_clipped && face_points.len() >= 3 {
-            let color = get_color(face.ledge_id as u32);
-
-            let (x_coords, y_coords): (Vec<i16>, Vec<i16>) = face_points.iter().cloned().unzip();
-
-            canvas
-                .filled_polygon(&x_coords, &y_coords, color)
-                .expect("Failed to render face");
-        }
     }
 }

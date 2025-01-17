@@ -4,7 +4,7 @@ use glam::Vec3;
 
 use super::{Bsp, BspHeader};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Vertex {
     pub coordinates: Vec3,
 }
