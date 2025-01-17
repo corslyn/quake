@@ -1,17 +1,23 @@
+use rodio::Sink;
 use rodio::{source::Source, Decoder, OutputStream};
 use std::fs::File;
 use std::io::BufReader;
-use std::path::Path;
 use std::thread;
 
 pub fn handle_music() {
-    // Create an audio output stream
-    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-    // Load a sound from a file, using a path relative to Cargo.toml
-    let file = BufReader::new(File::open("id1/music/track06.ogg").unwrap());
-    let source = Decoder::new(file).unwrap();
-    // Play the music in a separate thread
-    stream_handle
-        .play_raw(source.convert_samples())
-        .expect("Failed to play audio");
+    thread::spawn(|| {
+        // Initialize Rodio Output Stream
+        let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+        let sink = Sink::try_new(&stream_handle).unwrap();
+
+        // Load and play music
+        let file = File::open("id1/music/track04.ogg").expect("Failed to open music file");
+        let source = Decoder::new(BufReader::new(file))
+            .expect("Failed to decode music file")
+            .repeat_infinite();
+
+        sink.append(source);
+        sink.set_volume(1.0); // Full volume
+        sink.sleep_until_end();
+    });
 }

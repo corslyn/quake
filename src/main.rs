@@ -47,17 +47,19 @@ fn main() -> Result<(), String> {
     };
 
     let wad = wad::Wad::new(pak0.find_file("gfx.wad").unwrap());
-    let bsp = bsp::Bsp::new(pak0.find_file("maps/e1m1.bsp").unwrap());
+    let bsp = bsp::Bsp::new(pak0.find_file("maps/start.bsp").unwrap());
 
     let bsp_header = bsp.read_header();
+
     let vertices = bsp.read_vertices(&bsp_header);
     let edges = bsp.read_edges(&bsp_header);
     //let entities = bsp.read_entities(&bsp_header);
     let faces = bsp.read_faces(&bsp_header);
     let planes = bsp.read_planes(&bsp_header);
-    println!("{:?}", planes);
 
-    // handle_music(); todo: find a way to play music while being able to move and render the map
+    println!("{:?}", bsp_header);
+
+    handle_music(); //todo: find a way to play music while being able to move and render the map
 
     //println!("{:?}", vertices);
     // Initialize SDL2
