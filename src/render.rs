@@ -6,6 +6,7 @@ use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 use sdl2::mouse::MouseButtonIterator;
+use sdl2::rect::Point;
 use sdl2::Sdl;
 use sdl2::{pixels::Color, render::WindowCanvas};
 
@@ -29,6 +30,7 @@ pub fn render(
     edges: &[Edge],
     faces: &[Face],
     planes: &[Plane],
+    ledges: &[i32],
 ) {
     // Create an off-screen texture at the fixed resolution (320x200)
     let texture_creator = canvas.texture_creator();
@@ -53,17 +55,9 @@ pub fn render(
     canvas.clear();
     let (window_width, window_height) = canvas.window().size();
 
+    render_faces(canvas, camera, faces, edges, vertices, ledges, Color::GRAY);
     edges::render_edges(canvas, camera, vertices, edges, window_width, window_height);
-    /*render_faces(
-        canvas,
-        faces,
-        planes,
-        edges,
-        vertices,
-        camera,
-        window_width,
-        window_height,
-    );*/
+
     // Present the canvas to display the final output
     canvas.present();
 }
@@ -211,6 +205,23 @@ pub fn handle_input(
     }
 }
 
+fn project_vertex(
+    camera: &Camera,
+    vertex: Vec3,
+    screen_width: u32,
+    screen_height: u32,
+) -> (i32, i32) {
+    let view_proj = camera.projection_matrix() * camera.view_matrix();
+    let clip_space = view_proj * vertex.extend(1.0); // Transform vertex to clip space
+    let ndc_space = clip_space.xyz() / clip_space.w; // Normalize by W (perspective divide)
+
+    // Map NDC (-1 to 1) to screen coordinates
+    let screen_x = ((ndc_space.x + 1.0) * 0.5 * screen_width as f32) as i32;
+    let screen_y = ((1.0 - ndc_space.y) * 0.5 * screen_height as f32) as i32;
+
+    (screen_x, screen_y)
+}
+
 fn ndc_to_screen(ndc: Vec3, screen_width: u32, screen_height: u32) -> sdl2::rect::Point {
     let x = ((ndc.x + 1.0) * 0.5 * screen_width as f32) as i32;
     let y = ((1.0 - ndc.y) * 0.5 * screen_height as f32) as i32; // Flip Y axis
@@ -224,4 +235,67 @@ pub fn get_color(seed: u32) -> Color {
         b: (seed & 0xFF) as u8,       // Extract the blue component
         a: 255,                       // Fully opaque
     }
+}
+
+pub fn render_faces(
+    canvas: &mut sdl2::render::WindowCanvas,
+    camera: &Camera,
+    faces: &[Face],
+    edges: &[Edge],
+    vertices: &[Vertex],
+    ledges: &[i32],
+    solid_color: Color,
+) {
+    for face in faces {
+        let mut face_vertices = Vec::new();
+
+        // Iterate through the edges for this face
+        for i in 0..face.ledge_num {
+            let ledge_index = ledges[(face.ledge_id as u32 + i as u32) as usize];
+            let edge = if ledge_index >= 0 {
+                &edges[ledge_index as usize]
+            } else {
+                let reversed_index = (-ledge_index) as usize;
+                &edges[reversed_index]
+            };
+
+            // Add vertices based on the edge direction
+            if ledge_index >= 0 {
+                face_vertices.push(vertices[edge.start_vertex as usize].clone());
+            } else {
+                face_vertices.push(vertices[edge.end_vertex as usize].clone());
+            }
+        }
+
+        if !is_face_in_view(camera, &face_vertices) {
+            continue;
+        }
+
+        // Convert the face_vertices to screen space and draw a filled polygon
+        let transformed_vertices: Vec<(i32, i32)> = face_vertices
+            .iter()
+            .map(|vertex| {
+                project_vertex(
+                    camera,
+                    vertex.coordinates,
+                    canvas.window().size().0,
+                    canvas.window().size().1,
+                )
+            })
+            .collect();
+
+        canvas.set_draw_color(solid_color);
+        let (vx, vy): (Vec<i16>, Vec<i16>) = transformed_vertices
+            .iter()
+            .map(|&(x, y)| (x as i16, y as i16))
+            .unzip();
+        canvas.filled_polygon(&vx, &vy, solid_color).unwrap();
+    }
+}
+
+fn is_face_in_view(camera: &Camera, face_vertices: &[Vertex]) -> bool {
+    face_vertices.iter().any(|vertex| {
+        let relative_pos = vertex.coordinates - camera.position;
+        camera.forward.dot(relative_pos) > 0.0 // Simple front-face check
+    })
 }

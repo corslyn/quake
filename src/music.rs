@@ -11,7 +11,7 @@ pub fn handle_music() {
         let sink = Sink::try_new(&stream_handle).unwrap();
 
         // Load and play music
-        let file = File::open("id1/music/track04.ogg").expect("Failed to open music file");
+        let file = File::open("id1/music/track06.ogg").expect("Failed to open music file");
         let source = Decoder::new(BufReader::new(file))
             .expect("Failed to decode music file")
             .repeat_infinite();

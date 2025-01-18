@@ -1,4 +1,4 @@
-use std::io::{self};
+use std::io::{self, Read};
 
 pub use self::edges::Edge;
 pub use self::faces::Face;
@@ -92,5 +92,22 @@ impl Bsp {
             ledges: read_entry(&mut cursor),
             models: read_entry(&mut cursor),
         }
+    }
+
+    pub fn read_ledges(&self, header: &BspHeader) -> Vec<i32> {
+        let ledges_offset = header.ledges.offset as usize;
+        let ledges_count = header.ledges.size as usize / std::mem::size_of::<i32>();
+        let mut ledges = Vec::new();
+
+        for i in 0..ledges_count {
+            let start = ledges_offset + i * std::mem::size_of::<i32>();
+            let mut buffer = [0u8; 4];
+            (&self.data[start..start + 4])
+                .read_exact(&mut buffer)
+                .unwrap();
+            ledges.push(i32::from_le_bytes(buffer));
+        }
+
+        ledges
     }
 }

@@ -41,7 +41,7 @@ pub fn render_edges(
             let v1_screen = ndc_to_screen(v1_clipped, screen_width, screen_height);
             let v2_screen = ndc_to_screen(v2_clipped, screen_width, screen_height);
 
-            canvas.set_draw_color(sdl2::pixels::Color::RGB(255, 255, 255));
+            canvas.set_draw_color(sdl2::pixels::Color::BLACK);
             canvas
                 .draw_line(v1_screen, v2_screen)
                 .expect("Failed to draw edge");

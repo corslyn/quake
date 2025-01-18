@@ -56,6 +56,7 @@ fn main() -> Result<(), String> {
     //let entities = bsp.read_entities(&bsp_header);
     let faces = bsp.read_faces(&bsp_header);
     let planes = bsp.read_planes(&bsp_header);
+    let ledges = bsp.read_ledges(&bsp_header);
 
     println!("{:?}", bsp_header);
 
@@ -132,6 +133,7 @@ fn main() -> Result<(), String> {
             &edges,
             &faces,
             &planes,
+            &ledges,
         );
 
         // Control frame rate (72 FPS)

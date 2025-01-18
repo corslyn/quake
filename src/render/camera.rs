@@ -1,4 +1,4 @@
-use glam::{Mat4, Vec3};
+use glam::{Mat4, Vec3, Vec4Swizzles};
 
 use crate::bsp::Vertex;
 
